@@ -62,14 +62,14 @@ void movePlayer()
 {
  //move up, down, left, right
  if(K.a ==1 && K.m==0){ P.a -= 4; if(P.a < 0) {P.a+=360;}}
- if(K.d ==1 && K.m==0){  P.a += 4; if(P.a > 359) {P.a-=360;}}
+ if(K.d ==1 && K.m==0){ P.a += 4; if(P.a > 359) {P.a-=360;}}
  int dx = M.sin[P.a] * 10.0;
  int dy = M.cos[P.a] * 10.0;
  if(K.w ==1 && K.m==0){ P.x +=dx; P.y+=dy;}
- if(K.s ==1 && K.m==0){ P.x-=dx; P.y -=dy;}
+ if(K.s ==1 && K.m==0){ P.x-=dx; P.y-=dy;}
  //strafe left, right
- if(K.sr==1){P.x +=dy; P.y+=dx;}
- if(K.sl==1){P.x +=dy; P.y+=dx;}
+ if(K.sr==1){P.x +=dy; P.y-=dx;}
+ if(K.sl==1){P.x -=dy; P.y+=dx;}
  //move up, down, look up, look down
  if(K.a==1 && K.m==1){ P.l -=1;}
  if(K.d==1 && K.m==1){ P.l +=1;}
@@ -85,32 +85,58 @@ void clearBackground()
  }	
 }
 
+void drawWall(int x1, int x2, int b1, int b2, int t1, int t2){
+    int x,y;
+    // Hold difference in distance
+    int dyb = b2-b1; // y distance of bottom line
+    int dyt = t2-t1;
+    int dx = x2 - x1; if (dx == 0) {dx =1;} // x distance
+    int xs = x1; // hold initial x1 starting position
+
+    // draw x vertical lines
+    for (int x = x1; x < x2; ++x) {
+        // Y start and end point
+        int y1 = dyb * (x-xs + 0.5)/ dx+b1;//y bottom point
+        int y2 = dyt * (x-xs + 0.5)/ dx+t1; // y top point
+        for (y=y1;y<y2; y++)
+        {
+            pixel(x,y,0);
+        }
+    }
+
+}
+
 
 void draw3D()
 {
     int wx[4], wy[4], wz[4];
-    float l_cos = M.cos[P.a], l_sin = M.sin[P.a];
+    float CS = M.cos[P.a], SN = M.sin[P.a];
     // Offset bottom 2 points by player
     int x1 = 40-P.x, y1 = 10-P.y;
     int x2 = 40-P.x, y2 = 290-P.y;
 
     // World X position
-    wx[0] = x1 * l_cos - y1 * l_sin;
-    wx[1] = x2 * l_cos - y2 * l_sin;
-    // World Y position
-    wx[0] = y1 * l_cos - x1 * l_sin;
-    wx[1] = y2 * l_cos - x2 * l_sin;
+    wx[0] = x1 * CS - y1 * SN;
+    wx[1] = x2 * CS - y2 * SN;
+    wx[2] = wx[0];
+    wx[3] = wx[1];
+    // World Y position (depth)
+    wy[0] = y1 * CS + x1 * SN;
+    wy[1] = y2 * CS + x2 * SN;
+    wy[2] = wy[0];
+    wy[3] = wy[1];
     // World z height
-    wz[0] = 0-P.z;
-    wz[1] = 0-P.z;
+    wz[0] = 0-P.z + ((P.l*wy[0])/32.0);
+    wz[1] = 0-P.z + ((P.l*wy[1])/32.0);
+    wz[2] = wz[0] + 40;
+    wz[3] = wz[1] + 40;
     // Screen x, screen y position
-    wx[0] = wx[0]*200/wy[0]+SW2; wy[0] = wz[0]*200/wy[0]+SH2;
-    wx[1] = wx[1]*200/wy[1]+SW2; wy[1] = wz[1]*200/wy[1]+SH2;
-    // Draw points
-    if(wx[0]> 0 && wx[0]<SW && wy[0]> 0 && wy[0]<SH) { pixel(wx[0], wy[0],0);}
-    if(wx[1]> 0 && wx[1]<SW && wy[1]> 0 && wy[1]<SH) { pixel(wx[1], wy[1],0);}
-
-
+    wx[0] = wx[0] * 200/wy[0] + SW2; wy[0] = wz[0]*200/wy[0] + SH2;
+    wx[1] = wx[1] * 200/wy[1] + SW2; wy[1] = wz[1]*200/wy[1] + SH2;
+    wx[2] = wx[2] * 200/wy[2] + SW2; wy[2] = wz[2]*200/wy[2] + SH2;
+    wx[3] = wx[3] * 200/wy[3] + SW2; wy[3] = wz[3]*200/wy[3] + SH2;
+    // Draw wall
+    drawWall(wx[0], wx[1], wy[0],wy[1], wy[2], wy[3]);
 }
 
 void display() 
@@ -155,8 +181,8 @@ void init()
 {
     int x;
     for (x = 0; x<360; x++){
-        M.cos[x] = cos(x / 180.0 * M_PI);
-        M.sin[x] = sin(x /180.0 * M_PI);
+        M.cos[x] = cos(x/180.0 * M_PI);
+        M.sin[x] = sin(x/180.0 * M_PI);
     }
     P.x = 70; P.y = -110; P.z = 20; P.a = 0; P.l = 0;
 }
