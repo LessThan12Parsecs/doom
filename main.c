@@ -84,6 +84,16 @@ void clearBackground()
   for(x=0;x<SW;x++){ pixel(x,y,8);} //clear background color
  }	
 }
+// Clip lines if behind player
+void clipBehindPlayer(int *x1, int *y1, int *z1, int x2, int y2, int z2){
+    float da=*y1; // Distance plane -> point a
+    float db= y2; // Distance plane -> point b
+    float d = da-db; if (d==0) {d=1;}
+    float s = da/(da-db); // Normalized intersection factor.
+    *x1 = *x1 + s * (x2 - (*x1));
+    *y1 = *y1 + s * (y2 - (*y1)); if (*y1 == 0) {*y1=1;} // No zero division
+    *z1 = *z1 + s * (z2 - (*z1));
+}
 
 void drawWall(int x1, int x2, int b1, int b2, int t1, int t2){
     int x,y;
@@ -93,11 +103,24 @@ void drawWall(int x1, int x2, int b1, int b2, int t1, int t2){
     int dx = x2 - x1; if (dx == 0) {dx =1;} // x distance
     int xs = x1; // hold initial x1 starting position
 
+    // Clip in X
+    if (x1 < 1){ x1 = 1;} // Set to 1 to visualize clipping on first pixel before clipping
+    if (x2 < 1){ x2 = 1;}
+    if (x1 > SW -1 ){ x1 = SW-1;}
+    if (x2 > SW -1 ){ x2 = SW-1;}
+
+
     // draw x vertical lines
     for (int x = x1; x < x2; ++x) {
         // Y start and end point
         int y1 = dyb * (x-xs + 0.5)/ dx+b1;//y bottom point
         int y2 = dyt * (x-xs + 0.5)/ dx+t1; // y top point
+        // Clip in X
+        if (y1 < 1){ y1 = 1;} // Set to 1 to visualize clipping on first pixel before clipping
+        if (y2 < 1){ y2 = 1;}
+        if (y1 > SH -1 ){ y1 = SH-1;}
+        if (y2 > SH -1 ){ y2 = SH-1;}
+
         for (y=y1;y<y2; y++)
         {
             pixel(x,y,0);
@@ -130,6 +153,19 @@ void draw3D()
     wz[1] = 0-P.z + ((P.l*wy[1])/32.0);
     wz[2] = wz[0] + 40;
     wz[3] = wz[1] + 40;
+
+    // if behind player don't draw
+    if(wy[0]<1 && wy[1] <1){return;}
+    // Point 1 behind player, clip
+    if (wy[0] < 1){
+        clipBehindPlayer(&wx[0], &wy[0],&wz[0],wx[1],wy[1],wz[1]); // Bottom Line
+        clipBehindPlayer(&wx[2], &wy[2],&wz[2],wx[3],wy[3],wz[3]); // Top Line
+    }
+    // Point 2 behind player, clip
+    if (wy[1] < 1){
+        clipBehindPlayer(&wx[1], &wy[1],&wz[1],wx[0],wy[0],wz[0]); // Bottom Line
+        clipBehindPlayer(&wx[3], &wy[3],&wz[3],wx[2],wy[2],wz[2]); // Top Line
+    }
     // Screen x, screen y position
     wx[0] = wx[0] * 200/wy[0] + SW2; wy[0] = wz[0]*200/wy[0] + SH2;
     wx[1] = wx[1] * 200/wy[1] + SW2; wy[1] = wz[1]*200/wy[1] + SH2;
